@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from datetime import datetime
 
 DB_PATH = Path("database/estoque.db")
 
@@ -137,3 +138,22 @@ def deletar_produto(id_produto):
 
     conn.commit()
     conn.close()
+
+def listar_produtos_ate_validade(data_limite):
+    produtos = listar_produtos()
+    produtos_filtrados = []
+
+    limite = datetime.strptime(data_limite, "%d/%m/%Y")
+
+    for item in produtos:
+        validade_item = item[5]
+
+        try:
+            validade_convertida = datetime.strptime(validade_item, "%d/%m/%Y")
+        except ValueError:
+            continue
+
+        if validade_convertida <= limite:
+            produtos_filtrados.append(item)
+
+    return produtos_filtrados

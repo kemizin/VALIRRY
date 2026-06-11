@@ -6,12 +6,16 @@ from database.database import (
     salvar_produto,
     listar_produtos,
     atualizar_produto,
-    deletar_produto
+    deletar_produto,
+    listar_produtos_ate_validade
 )
 
 from services.export import exportar_excel
 
 from services.date_utils import formatar_validade
+
+from services.ean13_reader import ler_codigo_barras_da_imagem
+
 
 def main(page: ft.Page):
     page.title = "VALIRRY"
@@ -35,6 +39,7 @@ def main(page: ft.Page):
                 controls=[
                     ft.Text("Cadastro", size=24, weight=ft.FontWeight.BOLD),
                     codigo_barras,
+                    botao_ler_codigo_imagem,
                     codigo_interno,
                     produto,
                     lote,
@@ -67,8 +72,127 @@ def main(page: ft.Page):
 
         page.update()
 
+#=========================
+#barcode
+#++++++++++++++++++++++++
+    async def selecionar_imagem_codigo(e):
+        arquivos = await ft.FilePicker().pick_files(
+            allow_multiple=False,
+            file_type=ft.FilePickerFileType.CUSTOM,
+            allowed_extensions=["png", "jpg", "jpeg"]
+        )
+
+        if not arquivos:
+            mensagem.value = "Nenhuma imagem selecionada."
+            page.update()
+            return
+
+        caminho_imagem = arquivos[0].path
+
+        if not caminho_imagem:
+            mensagem.value = "Não consegui acessar o caminho da imagem."
+            page.update()
+            return
+
+        codigo = ler_codigo_barras_da_imagem(caminho_imagem)
+
+        if codigo:
+            codigo_barras.value = codigo
+            mensagem.value = f"Código lido: {codigo}"
+        else:
+            mensagem.value = "Não consegui ler o código nessa imagem."
+
+        page.update()
 
 
+    botao_ler_codigo_imagem = ft.Button(
+        content="Ler código por imagem",
+        on_click=selecionar_imagem_codigo
+    )
+
+
+
+#======================================
+#relatorio de validades
+#++++++++++++++++++++++++++++++++++++++
+    data_limite_relatorio = ft.TextField(
+        label="Mostrar produtos que vencem até",
+        hint_text="Ex: 30/11/2026"
+    )
+
+    resultado_relatorio = ft.Column(spacing=8)
+
+    def gerar_relatorio(e):
+        resultado_relatorio.controls.clear()
+
+        try:
+            data_formatada = formatar_validade(data_limite_relatorio.value)
+        except ValueError:
+            mensagem.value = "Data limite inválida. Use algo tipo 30/11/2026 ou 301126."
+            page.update()
+            return
+
+        produtos_filtrados = listar_produtos_ate_validade(data_formatada)
+
+        if not produtos_filtrados:
+            resultado_relatorio.controls.append(
+                ft.Text("Nenhum produto encontrado nesse período.")
+            )
+            page.update()
+            return
+
+        for item in produtos_filtrados:
+            (
+                id_produto,
+                codigo_barras_item,
+                codigo_interno_item,
+                produto_item,
+                lote_item,
+                validade_item,
+                quantidade_item,
+                data_conferencia_item
+            ) = item
+
+            resultado_relatorio.controls.append(
+                ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            ft.Text(f"{produto_item}", weight=ft.FontWeight.BOLD, size=16),
+                            ft.Text(f"Cód. interno: {codigo_interno_item}"),
+                            ft.Text(f"Lote: {lote_item}"),
+                            ft.Text(f"Validade: {validade_item}"),
+                            ft.Text(f"Quantidade: {quantidade_item}"),
+                        ],
+                        spacing=2
+                    ),
+                    padding=10,
+                    bgcolor="#1E1E1E",
+                    border_radius=8
+                )
+            )
+
+        mensagem.value = f"Relatório gerado até {data_formatada}."
+        page.update()
+    def mostrar_relatorios():
+        conteudo.controls.clear()
+
+        conteudo.controls.append(
+            ft.Column(
+                controls=[
+                    ft.Text("Relatórios", size=24, weight=ft.FontWeight.BOLD),
+                    data_limite_relatorio,
+                    ft.Button(
+                        content="Gerar relatório",
+                        on_click=gerar_relatorio
+                    ),
+                    resultado_relatorio,
+                    mensagem,
+                ],
+                spacing=12
+            )
+        )
+
+        page.update()
 #======================================
 #dicionario pra não brigar com nonlocal
 #++++++++++++++++++++++++++++++++++++++
@@ -314,33 +438,41 @@ def main(page: ft.Page):
 #=============================
 #page adds 
 #++++++++++++++++++++++++++++
-    page.add(
-    ft.Column(
+    barra_abas = ft.Row(
         controls=[
-            ft.Text("VALIRRY", size=32, weight=ft.FontWeight.BOLD),
-
-            ft.Row(
-                controls=[
-                    ft.Button(
-                        content="Cadastro",
-                        on_click=lambda e: mostrar_cadastro()
-                    ),
-                    ft.Button(
-                        content="Produtos",
-                        on_click=lambda e: mostrar_produtos()
-                    ),
-                    botao_exportar,
-                ],
-                spacing=10
+            ft.Button(
+                content="Cadastro",
+                on_click=lambda e: mostrar_cadastro()
             ),
-
-            conteudo,
+            ft.Button(
+                content="Produtos",
+                on_click=lambda e: mostrar_produtos()
+            ),
+            botao_exportar,
+            ft.Button(
+                content="Relatórios",
+                on_click=lambda e: mostrar_relatorios()
+            ),
         ],
-        spacing=12
+        spacing=13,
+        scroll=ft.ScrollMode.AUTO
     )
-)
+
+    page.add(
+        ft.Column(
+            controls=[
+                ft.Text("VALIRRY", size=32, weight=ft.FontWeight.BOLD),
+
+                barra_abas,
+
+                conteudo,
+            ],
+            spacing=13
+        )
+    )
 
     mostrar_cadastro()
 
 
 ft.run(main)
+
