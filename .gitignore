@@ -1,23 +1,16 @@
-# Virtual Environment
 .venv/
 
-# Python
 __pycache__/
 *.pyc
 
-# Database
-*.db
+database/*.db
 *.sqlite
 *.sqlite3
 
-# VSCode
 .vscode/
 
-# Exports
-exports/
+exports/*
+!exports/.gitkeep
 
-# OS
 Thumbs.db
 .DS_Store
-
-*.db
