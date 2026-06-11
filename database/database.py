@@ -71,7 +71,7 @@ def listar_produtos():
     cursor.execute("""
         SELECT
             id,
-            codigo_barras,
+            codigo_barras, 
             codigo_interno,
             produto,
             lote,
@@ -87,3 +87,41 @@ def listar_produtos():
     conn.close()
 
     return produtos
+
+def atualizar_produto(
+    id_produto,
+    codigo_barras,
+    codigo_interno,
+    produto,
+    lote,
+    validade,
+    quantidade,
+    data_conferencia
+):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE produtos
+        SET
+            codigo_barras = ?,
+            codigo_interno = ?,
+            produto = ?,
+            lote = ?,
+            validade = ?,
+            quantidade = ?,
+            data_conferencia = ?
+        WHERE id = ?
+    """, (
+        codigo_barras,
+        codigo_interno,
+        produto,
+        lote,
+        validade,
+        quantidade,
+        data_conferencia,
+        id_produto
+    ))
+
+    conn.commit()
+    conn.close()
