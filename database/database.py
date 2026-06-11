@@ -125,3 +125,15 @@ def atualizar_produto(
 
     conn.commit()
     conn.close()
+
+def deletar_produto(id_produto):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM produtos
+        WHERE id = ?
+    """, (id_produto,))
+
+    conn.commit()
+    conn.close()

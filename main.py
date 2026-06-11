@@ -5,18 +5,70 @@ from database.database import (
     init_db,
     salvar_produto,
     listar_produtos,
-    atualizar_produto
+    atualizar_produto,
+    deletar_produto
 )
+
 from services.export import exportar_excel
+
+from services.date_utils import formatar_validade
 
 def main(page: ft.Page):
     page.title = "VALIRRY"
     page.window.width = 500
     page.window.height = 700
     page.scroll = ft.ScrollMode.AUTO
+    conteudo = ft.Column()
 
 
     init_db()
+
+#=================================
+#exibição em abas 
+#+++++++++++++++++++++++++++++++++
+
+    def mostrar_cadastro():
+        conteudo.controls.clear()
+
+        conteudo.controls.append(
+            ft.Column(
+                controls=[
+                    ft.Text("Cadastro", size=24, weight=ft.FontWeight.BOLD),
+                    codigo_barras,
+                    codigo_interno,
+                    produto,
+                    lote,
+                    validade,
+                    quantidade,
+                    botao_salvar,
+                    mensagem,
+                ],
+                spacing=12
+            )
+        )
+
+        page.update()
+
+
+    def mostrar_produtos():
+        carregar_produtos()
+
+        conteudo.controls.clear()
+
+        conteudo.controls.append(
+            ft.Column(
+                controls=[
+                    ft.Text("Produtos cadastrados", size=24, weight=ft.FontWeight.BOLD),
+                    lista_produtos,
+                ],
+                spacing=12
+            )
+        )
+
+        page.update()
+
+
+
 #======================================
 #dicionario pra não brigar com nonlocal
 #++++++++++++++++++++++++++++++++++++++
@@ -92,30 +144,42 @@ def main(page: ft.Page):
             ) = item
 
             card = ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text(f"{produto_item}", weight=ft.FontWeight.BOLD, size=16),
-                    ft.Text(f"Cód. interno: {codigo_interno_item}"),
-                    ft.Text(f"Cód. barras: {codigo_barras_item}"),
-                    ft.Text(f"Lote: {lote_item}"),
-                    ft.Text(f"Validade: {validade_item}"),
-                    ft.Text(f"Quantidade: {quantidade_item}"),
-                    ft.Text(f"Conferido em: {data_conferencia_item}"),
-                    ft.Text("Clique para editar", size=12),
-                ],
-                spacing=2
-            ),
-            padding=10,
-            bgcolor="#1E1E1E",
-            border_radius=8
-        )
+                content=ft.Column(
+                    controls=[
+                        ft.Text(
+                            f"{produto_item}",
+                            weight=ft.FontWeight.BOLD,
+                            size=16
+                        ),
+                        ft.Text(f"Cód. interno: {codigo_interno_item}"),
+                        ft.Text(f"Cód. barras: {codigo_barras_item}"),
+                        ft.Text(f"Lote: {lote_item}"),
+                        ft.Text(f"Validade: {validade_item}"),
+                        ft.Text(f"Quantidade: {quantidade_item}"),
+                        ft.Text(f"Conferido em: {data_conferencia_item}"),
 
-        lista_produtos.controls.append(
-            ft.GestureDetector(
-                content=card,
-                on_tap=lambda e, item=item: carregar_para_edicao(item)
+                        ft.Row(
+                            controls=[
+                                ft.Button(
+                                    content="Editar",
+                                    on_click=lambda e, item=item: carregar_para_edicao(item)
+                                ),
+                                ft.Button(
+                                    content="Excluir",
+                                    on_click=lambda e, id_produto=id_produto: deletar_item(id_produto)
+                                ),
+                            ],
+                            spacing=10
+                        )
+                    ],
+                    spacing=4
+                ),
+                padding=10,
+                bgcolor="#1E1E1E",
+                border_radius=8
             )
-        )
+
+            lista_produtos.controls.append(card)
 
 #==========================
 #limpar campos
@@ -168,7 +232,12 @@ def main(page: ft.Page):
             mensagem.value = "Preenche produto, lote, validade e quantidade."
             page.update()
             return
-
+        try:
+            validade_formatada = formatar_validade(validade.value)
+        except ValueError:
+            mensagem.value = "Validade inválida. Use algo tipo 20/07/2026 ou 200726."
+            page.update()
+            return
         try:
             quantidade_int = int(quantidade.value)
         except ValueError:
@@ -182,7 +251,7 @@ def main(page: ft.Page):
                 codigo_interno=codigo_interno.value,
                 produto=produto.value,
                 lote=lote.value,
-                validade=validade.value,
+                validade=validade_formatada,
                 quantidade=quantidade_int,
                 data_conferencia=str(date.today())
             )
@@ -196,7 +265,7 @@ def main(page: ft.Page):
                 codigo_interno=codigo_interno.value,
                 produto=produto.value,
                 lote=lote.value,
-                validade=validade.value,
+                validade=validade_formatada,
                 quantidade=quantidade_int,
                 data_conferencia=str(date.today())
             )
@@ -227,33 +296,51 @@ def main(page: ft.Page):
         on_click=exportar
     )
 
+#============================
+#apagar
+#++++++++++++++++++++++++++++
+
+    def deletar_item(id_produto):
+        deletar_produto(id_produto)
+
+        mensagem.value = "Produto deletado com sucesso!"
+
+        limpar_campos()
+        carregar_produtos()
+        page.update()
+
+
+
 #=============================
 #page adds 
 #++++++++++++++++++++++++++++
     page.add(
-        ft.Column(
-            controls=[
-                titulo,
-                subtitulo,
-                codigo_barras,
-                codigo_interno,
-                produto,
-                lote,
-                validade,
-                quantidade,
-                botao_salvar,
-                botao_exportar,
-                mensagem,
-                ft.Text(
-                    "Produtos cadastrados",
-                    size=20,
-                    weight=ft.FontWeight.BOLD
-                ),
-                lista_produtos,
-            ],
-            spacing=12,
-        )
+    ft.Column(
+        controls=[
+            ft.Text("VALIRRY", size=32, weight=ft.FontWeight.BOLD),
+
+            ft.Row(
+                controls=[
+                    ft.Button(
+                        content="Cadastro",
+                        on_click=lambda e: mostrar_cadastro()
+                    ),
+                    ft.Button(
+                        content="Produtos",
+                        on_click=lambda e: mostrar_produtos()
+                    ),
+                    botao_exportar,
+                ],
+                spacing=10
+            ),
+
+            conteudo,
+        ],
+        spacing=12
     )
+)
+
+    mostrar_cadastro()
 
 
 ft.run(main)
