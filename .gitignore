@@ -1,0 +1,21 @@
+# Virtual Environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# VSCode
+.vscode/
+
+# Exports
+exports/
+
+# OS
+Thumbs.db
+.DS_Store
