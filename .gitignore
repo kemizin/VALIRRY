@@ -1,16 +1,28 @@
-.venv/
+# Build mobile / Flet / Flutter
+build/
+.dart_tool/
+.flet/
+.flutter-plugins
+.flutter-plugins-dependencies
 
+# Python
+.venv/
 __pycache__/
 *.pyc
 
-database/*.db
+# Banco local
+*.db
 *.sqlite
 *.sqlite3
 
-.vscode/
+# Debugs
+debug/
+assets/debug*.png
 
+# Exports gerados
 exports/*
 !exports/.gitkeep
-
-Thumbs.db
-.DS_Store
+build/
+build_log.txt
+debug/
+assets/debug*.png
