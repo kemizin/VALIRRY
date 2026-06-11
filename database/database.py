@@ -68,7 +68,19 @@ def listar_produtos():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM produtos")
+    cursor.execute("""
+        SELECT
+            id,
+            codigo_barras,
+            codigo_interno,
+            produto,
+            lote,
+            validade,
+            quantidade,
+            data_conferencia
+        FROM produtos
+        ORDER BY id DESC
+    """)
 
     produtos = cursor.fetchall()
 
